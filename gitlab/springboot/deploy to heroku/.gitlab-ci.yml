@@ -1,0 +1,44 @@
+image: gradle:latest
+
+variables:
+    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+stages:
+    - build
+    - staging
+    - production
+
+before_script:
+    - echo `pwd`
+    - export GRADLE_USER_HOME=`pwd`/.gradle
+
+# this is your build stage but can be used for testing
+build:
+    stage: build
+    script:
+        - gradle bootJar
+
+# for deployment to staging environment in this case develop branch
+deploy-staging:
+    stage: staging
+    image: ruby:latest
+    script:
+        - apt-get update -qy
+        - apt-get install -y ruby-dev
+        - gem install dpl
+        - dpl --provider=heroku --app=$HEROKU_APP_STAGING --api-key=$HEROKU_API_KEY
+    only:
+        - develop
+# for deployment to production environment in this case master branch
+deploy-production:
+    stage: production
+    image: ruby:latest
+    script:
+        - apt-get update -qy
+        - apt-get install -y ruby-dev
+        - gem install dpl
+        - dpl --provider=heroku --app=$HEROKU_APP_PRODUCTION --api-key=$HEROKU_API_KEY
+    only:
+        - main
+
+# if no multiple deployment environments remove the only with the branch name
